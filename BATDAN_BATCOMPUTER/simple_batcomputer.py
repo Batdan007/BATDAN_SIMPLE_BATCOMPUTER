@@ -19,15 +19,26 @@ import io
 
 # Core dependencies
 import requests
-import cv2
+try:
+    import cv2
+    CV2_AVAILABLE = True
+except Exception:
+    cv2 = None
+    CV2_AVAILABLE = False
 import numpy as np
 from PIL import Image
 try:
     from bs4 import BeautifulSoup
 except Exception:
     BeautifulSoup = None
-import speech_recognition as sr
-import pyttsx3
+try:
+    import speech_recognition as sr
+except Exception:
+    sr = None
+try:
+    import pyttsx3
+except Exception:
+    pyttsx3 = None
 
 # AI Integration
 from openai import OpenAI
@@ -107,11 +118,16 @@ class SimpleBatComputer:
     
     def init_camera(self):
         """Initialize camera system"""
+        if not CV2_AVAILABLE:
+            self.camera = None
+            self.camera_active = False
+            print("📹 Camera: ❌ OpenCV not available")
+            return
         try:
             self.camera = cv2.VideoCapture(0)
             self.camera_active = self.camera.isOpened()
             print(f"📹 Camera: {'✅ Ready' if self.camera_active else '❌ Not available'}")
-        except:
+        except Exception:
             self.camera = None
             self.camera_active = False
             print("📹 Camera: ❌ Failed to initialize")
@@ -119,6 +135,8 @@ class SimpleBatComputer:
     def init_voice(self):
         """Initialize voice system - Windows compatible"""
         try:
+            if sr is None:
+                raise RuntimeError("speech_recognition not available")
             self.recognizer = sr.Recognizer()
             
             # Windows-specific microphone initialization
@@ -136,6 +154,8 @@ class SimpleBatComputer:
                 self.microphone = sr.Microphone()
             
             # Initialize TTS
+            if pyttsx3 is None:
+                raise RuntimeError("pyttsx3 not available")
             self.tts = pyttsx3.init()
             
             # Windows TTS voice selection
@@ -271,7 +291,7 @@ class SimpleBatComputer:
     
     def listen_for_voice(self, timeout=5):
         """Listen for voice input"""
-        if not self.voice_active:
+        if not self.voice_active or sr is None:
             return None, "Voice not available"
 
         try:
