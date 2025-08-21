@@ -15,6 +15,7 @@ import re
 from urllib.parse import urlparse
 from typing import List, Dict, Optional
 import threading
+import io
 
 # Core dependencies
 import requests
@@ -326,7 +327,7 @@ class SimpleBatComputer:
                 f"{steps_str}. Do not reveal these steps; provide only the concise final answer unless explicitly asked."
             )
 
-    async def chat(self, message, include_vision=False, include_voice=False, use_reasoning: Optional[bool] = None, show_reasoning: Optional[bool] = None, reasoning_preset: Optional[str] = None):
+    async def chat(self, message, include_vision=False, include_voice=False, use_reasoning: Optional[bool] = None, show_reasoning: Optional[bool] = None, reasoning_preset: Optional[str] = None, image_bytes: Optional[bytes] = None):
         """Main chat function with Dolphin-Mistral"""
         
         # Handle voice input if requested
@@ -340,7 +341,17 @@ class SimpleBatComputer:
         # Handle vision input if requested
         vision_context = ""
         if include_vision:
-            frame, status = self.capture_image()
+            frame = None
+            if image_bytes:
+                try:
+                    pil_image = Image.open(io.BytesIO(image_bytes))
+                    rgb = np.array(pil_image.convert("RGB"))
+                    frame = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+                except Exception:
+                    frame = None
+            else:
+                _, status = self.capture_image()
+                frame, _ = self.capture_image()
             if frame is not None:
                 analysis = self.analyze_image(frame)
                 vision_context = f"\n\nVision Analysis: {analysis}"
